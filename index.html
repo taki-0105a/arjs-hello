@@ -12,12 +12,14 @@
     (function () {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
       var orig = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
       navigator.mediaDevices.getUserMedia = function (constraints) {
         try {
           if (constraints && typeof constraints.video === 'object') {
-            // facingMode を非 exact の「希望」にし、解像度等の厳格な制約を除去
+            // スマホ：背面カメラを希望（ideal なので無くても失敗しない）
+            // PC：facingMode を指定せず利用可能なカメラ（前面）を使う
             constraints = Object.assign({}, constraints, {
-              video: { facingMode: 'environment' }
+              video: isMobile ? { facingMode: { ideal: 'environment' } } : true
             });
           }
         } catch (e) { /* 失敗時は元の制約のまま */ }
