@@ -69,7 +69,8 @@
         <a-entity light="type: ambient; intensity: 0.65"></a-entity>
         <a-entity light="type: directional; intensity: 0.9" position="1 3 2"></a-entity>`;
       const anchor = document.createElement(preview ? 'a-entity' : 'a-marker');
-      if (!preview) { anchor.setAttribute('type', 'pattern'); anchor.setAttribute('url', 'marker-heian.patt'); }
+      if (!preview) { anchor.setAttribute('type', 'pattern'); anchor.setAttribute('url', 'marker-heian.patt');
+        anchor.setAttribute('smooth', 'true'); anchor.setAttribute('smoothCount', '10'); anchor.setAttribute('smoothTolerance', '0.01'); anchor.setAttribute('smoothThreshold', '5'); }
       const stage = document.createElement('a-entity'); stage.setAttribute('heian-stage', ''); stage.id = 'stage';
       anchor.appendChild(stage); scene.appendChild(anchor);
       if (preview) {
@@ -87,7 +88,17 @@
         anchor.addEventListener('markerLost', () => document.getElementById('hint').style.display = 'block');
       }
       document.body.appendChild(scene);
+      if (!preview) applyStand();
       scene.addEventListener('loaded', () => render());
+    }
+
+    // 画面に出したマーカー（縦）：人物を画面に沿って立て、足元をマーカーの下の辺に置く
+    // 机に置いたマーカー（横）：マーカーの上に立てる
+    let stand = true;
+    function applyStand() {
+      const st = document.getElementById('stage');
+      st.setAttribute('rotation', stand ? '-90 0 0' : '0 0 0');
+      st.setAttribute('position', stand ? '0 0 0.5' : '0 0 0');
     }
 
     function render() {
@@ -112,6 +123,11 @@
     const roofBtn = document.createElement('button'); roofBtn.textContent = '屋根を外す'; roofBtn.id = 'roofBtn';
     roofBtn.onclick = () => { const s = document.getElementById('stage').components['heian-stage']; const y = s.holder.getObjectByName('yane'); if (y) { y.visible = !y.visible; roofBtn.classList.toggle('on', !y.visible); } };
     kinds.appendChild(roofBtn);
+    if (!preview) {
+      const standBtn = document.createElement('button'); standBtn.textContent = '向き：画面のマーカー';
+      standBtn.onclick = () => { stand = !stand; applyStand(); standBtn.textContent = stand ? '向き：画面のマーカー' : '向き：机のマーカー'; };
+      kinds.appendChild(standBtn);
+    }
     buildScene();
   </script>
 </body>
