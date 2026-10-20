@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <title>評論文の構造AR（タスク9-1）</title>
+  <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"></script>
+  <script>
+    // 日本語の札：A-Frame の文字は日本語の字形を持たないので、canvas に描いて板の模様にする
+    AFRAME.registerComponent('jp-label', {
+      schema: { text: { type: 'string' }, bg: { default: '#1F3A5F' }, fg: { default: '#FFFFFF' } },
+      init: function () {
+        const c = document.createElement('canvas');
+        c.width = 512; c.height = 256;
+        const g = c.getContext('2d');
+        g.fillStyle = this.data.bg; g.fillRect(0, 0, c.width, c.height);
+        g.fillStyle = this.data.fg;
+        g.font = 'bold 96px "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif';
+        g.textAlign = 'center'; g.textBaseline = 'middle';
+        g.fillText(this.data.text, c.width / 2, c.height / 2);
+        const tex = new THREE.CanvasTexture(c);
+        this.el.addEventListener('loaded', () => {
+          const mesh = this.el.getObject3D('mesh');
+          if (mesh) { mesh.material.map = tex; mesh.material.needsUpdate = true; }
+        });
+        const mesh = this.el.getObject3D('mesh');
+        if (mesh) { mesh.material.map = tex; mesh.material.needsUpdate = true; }
+      }
+    });
+  </script>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    .hint {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 999;
+      background: rgba(31, 58, 95, 0.85); color: #fff;
+      font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif;
+      font-size: 14px; text-align: center; padding: 8px 10px; line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <a-scene embedded vr-mode-ui="enabled: false"
+    arjs="sourceType: webcam; debugUIEnabled: false; detectionMode: mono;">
+
+    <!-- LTⅠ タスク14 と同じ「AR.js」マーカー -->
+    <a-marker type="pattern" url="../my-icon-marker.patt">
+      <!-- 段落の役割を表す3つの立体の札を、論の流れの順に積む -->
+      <a-entity position="0 0.3 0">
+        <a-box width="1.6" height="0.8" depth="0.3" position="-1.1 0 0" color="#FFFFFF"
+               jp-label="text: 問題提起; bg: #1F3A5F"
+               animation="property: position; from: -1.1 0 0; to: -1.1 0.2 0; dur: 1500; dir: alternate; loop: true; easing: easeInOutSine"></a-box>
+        <a-box width="1.6" height="0.8" depth="0.3" position="0 0 0.9" color="#FFFFFF"
+               jp-label="text: 具体例; bg: #4A6FA5"></a-box>
+        <a-box width="1.6" height="0.8" depth="0.3" position="1.1 0 0" color="#FFFFFF"
+               jp-label="text: 主張; bg: #B5462F"
+               animation="property: position; from: 1.1 0 0; to: 1.1 0.2 0; dur: 1500; dir: alternate; loop: true; easing: easeInOutSine; delay: 750"></a-box>
+
+        <!-- 矢印（棒と円すい）：問題提起 → 具体例 → 主張 -->
+        <a-cylinder radius="0.04" height="0.7" color="#333" position="-0.6 -0.2 0.45" rotation="90 0 45"></a-cylinder>
+        <a-cone radius-bottom="0.1" height="0.2" color="#333" position="-0.35 -0.2 0.7" rotation="90 0 -135"></a-cone>
+        <a-cylinder radius="0.04" height="0.7" color="#333" position="0.6 -0.2 0.45" rotation="90 0 -45"></a-cylinder>
+        <a-cone radius-bottom="0.1" height="0.2" color="#333" position="0.85 -0.2 0.2" rotation="90 0 -45"></a-cone>
+      </a-entity>
+      <a-plane position="0 0 0" rotation="-90 0 0" width="3.6" height="2.4" color="#FFFFFF" opacity="0.6"></a-plane>
+    </a-marker>
+
+    <a-entity camera></a-entity>
+  </a-scene>
+  <div class="hint">「AR.js」マーカーにカメラを向けると、段落の役割（問題提起・具体例・主張）が立体の札で表示されます。</div>
+</body>
+</html>
