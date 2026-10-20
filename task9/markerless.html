@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>平安の装束AR（マーカーなし）</title>
-  <!-- 模型は heian.js で組み立てる（A-Frame は three.js を使うためだけに読み込む。シーンは作らない） -->
+  <!-- 寝殿造の模型は heian.js で組み立てる（A-Frame は three.js を使うためだけに読み込む。シーンは作らない） -->
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script>window.THREE = AFRAME.THREE;</script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/exporters/GLTFExporter.js"></script>
@@ -15,7 +15,7 @@
     html, body { margin: 0; height: 100%; background: #e9e4d8; font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
     model-viewer { position: fixed; inset: 0; width: 100%; height: 100%; --poster-color: transparent; }
     #info { position: fixed; left: 8px; right: 8px; top: 8px; z-index: 10; background: rgba(20, 22, 28, 0.78); color: #fff;
-            border-radius: 10px; padding: 8px 12px; font-size: 14px; line-height: 1.6; }
+            border-radius: 10px; padding: 8px 12px; font-size: 14px; line-height: 1.6; max-height: 34vh; overflow-y: auto; }
     #info b { font-size: 16px; }
     #bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; padding: 8px; background: rgba(20, 22, 28, 0.78);
            display: flex; flex-direction: column; gap: 6px; }
@@ -23,79 +23,104 @@
     button { flex: 0 0 auto; border: 1px solid #8a7a5a; background: #2b2a26; color: #f1ead8; border-radius: 16px;
              padding: 7px 12px; font-size: 14px; font-family: inherit; }
     button.on { background: #c9a96a; color: #1d1a14; border-color: #c9a96a; font-weight: bold; }
-    #ranks { display: none; }
-    #arBtn { position: absolute; left: 50%; transform: translateX(-50%); bottom: 120px; background: #c9a96a; color: #1d1a14;
+    #arBtn { position: absolute; left: 50%; transform: translateX(-50%); bottom: 130px; background: #c9a96a; color: #1d1a14;
              border: none; font-weight: bold; font-size: 16px; padding: 12px 20px; border-radius: 24px; }
-    #noAr { position: absolute; left: 12px; right: 12px; bottom: 120px; text-align: center; color: #3a3328; font-size: 13px; }
+    #credit { position: fixed; right: 8px; bottom: 112px; z-index: 9; font-size: 10px; color: #6a6252; }
+    #loading { position: fixed; left: 0; right: 0; top: 45%; text-align: center; z-index: 9; color: #5a5242; font-size: 14px; display: none; }
   </style>
 </head>
 <body>
   <model-viewer id="mv" ar ar-modes="webxr quick-look" ar-placement="floor" ar-scale="auto"
-                camera-controls touch-action="pan-y" shadow-intensity="1" exposure="1.05"
-                camera-orbit="20deg 75deg auto" interaction-prompt="none" alt="平安の寝殿造と装束の模型">
+                camera-controls touch-action="pan-y" shadow-intensity="1" exposure="1.0" environment-image="neutral"
+                camera-orbit="25deg 78deg auto" interaction-prompt="none" alt="平安の寝殿造と装束の模型">
     <button slot="ar-button" id="arBtn">机に置いて見る（AR）</button>
-    <div id="noAr" slot="ar-failure"></div>
   </model-viewer>
   <div id="info"></div>
+  <div id="loading">読み込み中…</div>
+  <div id="credit">人体：MakeHuman（CC0）</div>
   <div id="bar">
-    <div class="row" id="ranks"></div>
-    <div class="row" id="kinds"></div>
+    <div class="row" id="subs"></div>
+    <div class="row" id="cats"></div>
   </div>
   <script>
     const H = window.HEIAN;
     const mv = document.getElementById('mv');
+    const MODELS = 'models/';
+    // AR で置いたときの大きさ（等身大の何分の一か）。置いたあと、つまんで変えられる
+    const FIG = 0.28;
 
-    // 出すもの。size は AR で置いたときの大きさ（メートル）の目安。置いたあと、つまんで変えられる
-    const KINDS = [
-      { id: 'shinden', label: '寝殿造', size: 0.5, make: () => H.shinden() },
-      { id: 'sokutai', label: '束帯（男性の正装）', size: 0.3, make: () => H.sokutai(H.PALETTE.hoRank[currentRank]) },
-      { id: 'nyobo', label: '女房装束', size: 0.25, make: () => H.seatedLady(H.PALETTE.nyobo, { karaginu: true, mo: true, ogi: true }) },
-      { id: 'kouchiki', label: '小袿', size: 0.25, make: () => H.seatedLady(H.PALETTE.kouchiki, { kouchiki: true, ogi: true }) },
+    // 分類と、その中の種類。glb は Blender で作った写実的な人物、make は heian.js で組み立てる模型
+    const CATS = [
+      { id: 'shinden', label: '寝殿造', items: [{ id: 'shinden', label: '寝殿造', make: () => H.shinden(), size: 0.5 }] },
+      { id: 'kizoku', label: '貴族（束帯）', items: Object.keys(H.PALETTE.hoRank).map(r => ({ id: 'sokutai:' + r, label: r, glb: 'sokutai.glb', ho: H.PALETTE.hoRank[r] })) },
+      { id: 'nyonin', label: '女性', items: [
+          { id: 'nyobo', label: '女房装束（唐衣裳）', glb: 'nyo_nyobo.glb' },
+          { id: 'kouchiki', label: '小袿', glb: 'nyo_kouchiki.glb' } ] },
+      { id: 'sou', label: '僧侶', items: [
+          { id: 'sou:hoshi', label: '一般の僧', glb: 'sou_hoshi.glb' },
+          { id: 'sou:kosou', label: '高僧', glb: 'sou_kosou.glb' },
+          { id: 'sou:sohei', label: '僧兵', glb: 'sou_sohei.glb' } ] },
+      { id: 'bushi', label: '武士', items: [
+          { id: 'bushi:ooyoroi', label: '大鎧（平安末〜鎌倉）', glb: 'bushi_ooyoroi.glb' },
+          { id: 'bushi:doumaru', label: '胴丸（南北朝〜室町）', glb: 'bushi_doumaru.glb' },
+          { id: 'bushi:tousei', label: '当世具足（戦国）', glb: 'bushi_tousei.glb' },
+          { id: 'bushi:ashigaru', label: '足軽（室町後期〜戦国）', glb: 'bushi_ashigaru.glb' } ] },
     ];
-    let current = 'sokutai', currentRank = Object.keys(H.PALETTE.hoRank)[0], roofOff = false, lastUrl = null;
+    let cat = CATS[1], item = cat.items[0], lastUrl = null, roofOff = false, currentSrc = null;
 
-    // heian.js の模型を GLB にして model-viewer に渡す
+    // 色（#rrggbb、sRGB）を glTF のリニアの値に
+    function lin(hex) {
+      const c = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16) / 255);
+      return [...c.map(x => x <= 0.04045 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4)), 1];
+    }
+    // 寝殿造：heian.js の模型を GLB にする
     function toGlb(obj, size) {
       obj.updateMatrixWorld(true);
       const box = new THREE.Box3().setFromObject(obj), dim = new THREE.Vector3(); box.getSize(dim);
-      const s = size / Math.max(dim.x, dim.y, dim.z);
-      const root = new THREE.Group(); obj.scale.multiplyScalar(s); root.add(obj);
-      // 色は sRGB の値で書いてあるので、glTF の決まり（リニア）に直す
+      obj.scale.multiplyScalar(size / Math.max(dim.x, dim.y, dim.z));
+      const root = new THREE.Group(); root.add(obj);
       root.traverse(o => { if (o.material && o.material.color && !o.material.userData.lin) { o.material.color.convertSRGBToLinear(); o.material.userData.lin = true; } });
       return new Promise(res => new THREE.GLTFExporter().parse(root, buf => res(buf), { binary: true, onlyVisible: true }));
     }
+    // 束帯の袍の色を、選んだ位の色に塗り替える
+    function applyHo() {
+      if (!item.ho || !mv.model) return;
+      const m = mv.model.getMaterialByName('ho');
+      if (m) m.pbrMetallicRoughness.setBaseColorFactor(lin(item.ho));
+    }
+    mv.addEventListener('load', () => { document.getElementById('loading').style.display = 'none'; applyHo(); });
 
     async function render() {
-      const k = KINDS.find(x => x.id === current);
-      const obj = k.make();
-      if (current === 'shinden' && roofOff) { const y = obj.getObjectByName('yane'); if (y) y.visible = false; }
-      const buf = await toGlb(obj, k.size);
-      if (lastUrl) URL.revokeObjectURL(lastUrl);
-      lastUrl = URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' }));
-      mv.src = lastUrl;
-      const key = current === 'sokutai' ? 'sokutai:' + currentRank : current;
-      document.getElementById('info').innerHTML = H.INFO[key] || `<b>${k.label}</b>`;
-      document.getElementById('ranks').style.display = current === 'sokutai' ? 'flex' : 'none';
-      roofBtn.style.display = current === 'shinden' ? '' : 'none';
-      roofBtn.classList.toggle('on', roofOff);
-      document.querySelectorAll('#kinds button[data-id]').forEach(b => b.classList.toggle('on', b.dataset.id === current));
-      document.querySelectorAll('#ranks button').forEach(b => b.classList.toggle('on', b.dataset.id === currentRank));
+      if (item.glb) {
+        const src = MODELS + item.glb;
+        mv.setAttribute('scale', `${FIG} ${FIG} ${FIG}`);
+        if (currentSrc !== src) { document.getElementById('loading').style.display = 'block'; mv.src = src; currentSrc = src; }
+        else applyHo();
+      } else {
+        const obj = item.make();
+        if (roofOff) { const y = obj.getObjectByName('yane'); if (y) y.visible = false; }
+        const buf = await toGlb(obj, item.size);
+        if (lastUrl) URL.revokeObjectURL(lastUrl);
+        lastUrl = URL.createObjectURL(new Blob([buf], { type: 'model/gltf-binary' }));
+        mv.setAttribute('scale', '1 1 1'); mv.src = lastUrl; currentSrc = lastUrl;
+      }
+      document.getElementById('info').innerHTML = H.INFO[item.id] || `<b>${item.label}</b>`;
+      drawButtons();
     }
 
-    const kinds = document.getElementById('kinds'), ranks = document.getElementById('ranks');
-    KINDS.forEach(k => { const b = document.createElement('button'); b.textContent = k.label; b.dataset.id = k.id; b.onclick = () => { current = k.id; render(); }; kinds.appendChild(b); });
-    Object.keys(H.PALETTE.hoRank).forEach(r => { const b = document.createElement('button'); b.textContent = r; b.dataset.id = r; b.onclick = () => { currentRank = r; render(); }; ranks.appendChild(b); });
-    const spin = document.createElement('button'); spin.textContent = '回す';
-    spin.onclick = () => { const on = !mv.hasAttribute('auto-rotate'); on ? mv.setAttribute('auto-rotate', '') : mv.removeAttribute('auto-rotate'); spin.classList.toggle('on', on); };
-    kinds.appendChild(spin);
-    const roofBtn = document.createElement('button'); roofBtn.textContent = '屋根を外す';
-    roofBtn.onclick = () => { roofOff = !roofOff; render(); };
-    kinds.appendChild(roofBtn);
-
-    // AR が使えない端末（パソコンなど）では、その旨を出す
-    mv.addEventListener('load', () => {
-      document.getElementById('noAr').textContent = mv.canActivateAR ? '' : 'この端末では AR を使えません。指でドラッグすると回せます。';
-    });
+    function drawButtons() {
+      const cats = document.getElementById('cats'), subs = document.getElementById('subs');
+      cats.innerHTML = ''; subs.innerHTML = '';
+      CATS.forEach(c => { const b = document.createElement('button'); b.textContent = c.label; b.classList.toggle('on', c === cat);
+        b.onclick = () => { cat = c; item = c.items[0]; render(); }; cats.appendChild(b); });
+      if (cat.items.length > 1) cat.items.forEach(it => { const b = document.createElement('button'); b.textContent = it.label; b.classList.toggle('on', it === item);
+        b.onclick = () => { item = it; render(); }; subs.appendChild(b); });
+      if (cat.id === 'shinden') { const b = document.createElement('button'); b.textContent = '屋根を外す'; b.classList.toggle('on', roofOff);
+        b.onclick = () => { roofOff = !roofOff; render(); }; subs.appendChild(b); }
+      const spin = document.createElement('button'); spin.textContent = '回す'; spin.classList.toggle('on', mv.hasAttribute('auto-rotate'));
+      spin.onclick = () => { mv.hasAttribute('auto-rotate') ? mv.removeAttribute('auto-rotate') : mv.setAttribute('auto-rotate', ''); drawButtons(); };
+      cats.appendChild(spin);
+    }
     render();
   </script>
 </body>
