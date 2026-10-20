@@ -26,7 +26,7 @@
   <style>
     body { margin: 0; overflow: hidden; font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
     #info { position: fixed; left: 8px; right: 8px; top: 8px; z-index: 999; background: rgba(20, 22, 28, 0.78); color: #fff;
-            border-radius: 10px; padding: 8px 12px; font-size: 14px; line-height: 1.6; }
+            border-radius: 10px; padding: 8px 12px; font-size: 14px; line-height: 1.6; max-height: 30vh; overflow-y: auto; }
     #info b { font-size: 16px; }
     #bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 999; padding: 8px; background: rgba(20, 22, 28, 0.78);
            display: flex; flex-direction: column; gap: 6px; }
@@ -34,54 +34,82 @@
     button { flex: 0 0 auto; border: 1px solid #8a7a5a; background: #2b2a26; color: #f1ead8; border-radius: 16px;
              padding: 7px 12px; font-size: 14px; font-family: inherit; }
     button.on { background: #c9a96a; color: #1d1a14; border-color: #c9a96a; font-weight: bold; }
-    #ranks { display: none; }
     #hint { position: fixed; left: 0; right: 0; top: 45%; text-align: center; color: #fff; text-shadow: 0 0 6px #000; z-index: 998; font-size: 15px; }
+    #loading { position: fixed; left: 0; right: 0; top: 52%; text-align: center; color: #fff; text-shadow: 0 0 6px #000; z-index: 998; font-size: 13px; display: none; }
+    #credit { position: fixed; right: 8px; bottom: 104px; z-index: 998; font-size: 10px; color: #ddd; text-shadow: 0 0 4px #000; }
   </style>
 </head>
 <body>
   <div id="info"></div>
-  <div id="hint">「平」のマーカーにカメラを向けてください</div>
+  <div id="hint">束帯の影絵のマーカーにカメラを向けてください</div>
+  <div id="loading">模型を読み込み中…</div>
+  <div id="credit">人体：MakeHuman（CC0）</div>
   <div id="bar">
-    <div class="row" id="ranks"></div>
-    <div class="row" id="kinds"></div>
+    <div class="row" id="subs"></div>
+    <div class="row" id="cats"></div>
   </div>
   <script>
     const params = new URLSearchParams(location.search);
     const preview = params.has('preview');   // ?preview=1：カメラなしで中身を確かめる表示
     const H = window.HEIAN;
+    const FIG = 0.7;                         // 人物の大きさ（マーカーの一辺を 1 とする）
 
-    // 出すものの一覧（説明と色は heian.js の INFO / PALETTE を使う）
-    const KINDS = [
-      { id: 'shinden', label: '寝殿造', scale: 0.55, make: () => H.shinden() },
-      { id: 'sokutai', label: '束帯（男性の正装）', scale: 0.8, make: () => H.sokutai(H.PALETTE.hoRank[currentRank]) },
-      { id: 'nyobo', label: '女房装束', scale: 0.9, make: () => H.seatedLady(H.PALETTE.nyobo, { karaginu: true, mo: true, ogi: true }) },
-      { id: 'kouchiki', label: '小袿', scale: 0.9, make: () => H.seatedLady(H.PALETTE.kouchiki, { kouchiki: true, ogi: true }) },
+    // 分類と、その中の種類。glb は Blender で作った写実的な人物、make は heian.js で組み立てる模型
+    const CATS = [
+      { id: 'shinden', label: '寝殿造', items: [{ id: 'shinden', label: '寝殿造', make: () => H.shinden(), scale: 0.55 }] },
+      { id: 'kizoku', label: '貴族（束帯）', items: Object.keys(H.PALETTE.hoRank).map(r => ({ id: 'sokutai:' + r, label: r, glb: 'sokutai.glb', ho: H.PALETTE.hoRank[r] })) },
+      { id: 'nyonin', label: '女性', items: [
+          { id: 'nyobo', label: '女房装束（唐衣裳）', glb: 'nyo_nyobo.glb' },
+          { id: 'kouchiki', label: '小袿', glb: 'nyo_kouchiki.glb' } ] },
+      { id: 'sou', label: '僧侶', items: [
+          { id: 'sou:hoshi', label: '一般の僧', glb: 'sou_hoshi.glb' },
+          { id: 'sou:kosou', label: '高僧', glb: 'sou_kosou.glb' },
+          { id: 'sou:sohei', label: '僧兵', glb: 'sou_sohei.glb' } ] },
+      { id: 'bushi', label: '武士', items: [
+          { id: 'bushi:ooyoroi', label: '大鎧（平安末〜鎌倉）', glb: 'bushi_ooyoroi.glb' },
+          { id: 'bushi:doumaru', label: '胴丸（南北朝〜室町）', glb: 'bushi_doumaru.glb' },
+          { id: 'bushi:tousei', label: '当世具足（戦国）', glb: 'bushi_tousei.glb' },
+          { id: 'bushi:ashigaru', label: '足軽（室町後期〜戦国）', glb: 'bushi_ashigaru.glb' } ] },
     ];
-    let current = 'sokutai', currentRank = Object.keys(H.PALETTE.hoRank)[0];
+    let cat = CATS[1], item = cat.items[0], roofOff = false, stand = true, currentGlb = null;
+
+    // 束帯の袍の色を、選んだ位の色に塗り替える（glTF の色はリニアなので sRGB から直す）
+    function applyHo(root) {
+      if (!item.ho || !root) return;
+      const c = new THREE.Color(item.ho).convertSRGBToLinear();
+      root.traverse(o => { if (o.material && o.material.name === 'ho') o.material.color.copy(c); });
+    }
 
     function buildScene() {
       const scene = document.createElement('a-scene');
       if (!preview) scene.setAttribute('embedded', '');
       scene.setAttribute('vr-mode-ui', 'enabled: false');
       scene.setAttribute('renderer', 'colorManagement: true; antialias: true');
+      // Draco で圧縮した GLB を読むための展開器の場所（シーンを付ける前なので素の属性として書く）
+      HTMLElement.prototype.setAttribute.call(scene, 'gltf-model', 'dracoDecoderPath: https://www.gstatic.com/draco/versioned/decoders/1.5.6/');
       if (!preview) scene.setAttribute('arjs', 'sourceType: webcam; debugUIEnabled: false; detectionMode: mono;');
       scene.innerHTML = `
-        <a-entity light="type: ambient; intensity: 0.65"></a-entity>
-        <a-entity light="type: directional; intensity: 0.9" position="1 3 2"></a-entity>`;
+        <a-entity light="type: ambient; intensity: 0.75"></a-entity>
+        <a-entity light="type: directional; intensity: 0.9" position="1 3 2"></a-entity>
+        <a-entity light="type: directional; intensity: 0.35" position="-2 1 -1"></a-entity>`;
       const anchor = document.createElement(preview ? 'a-entity' : 'a-marker');
-      if (!preview) { anchor.setAttribute('type', 'pattern'); anchor.setAttribute('url', 'marker-heian.patt');
-        anchor.setAttribute('smooth', 'true'); anchor.setAttribute('smoothCount', '10'); anchor.setAttribute('smoothTolerance', '0.01'); anchor.setAttribute('smoothThreshold', '5'); }
+      if (!preview) {
+        anchor.setAttribute('type', 'pattern'); anchor.setAttribute('url', 'marker-sokutai.patt');
+        anchor.setAttribute('smooth', 'true'); anchor.setAttribute('smoothCount', '10'); anchor.setAttribute('smoothTolerance', '0.01'); anchor.setAttribute('smoothThreshold', '5');
+      }
       const stage = document.createElement('a-entity'); stage.setAttribute('heian-stage', ''); stage.id = 'stage';
+      const fig = document.createElement('a-entity'); fig.id = 'fig'; stage.appendChild(fig);
+      fig.addEventListener('model-loaded', () => { document.getElementById('loading').style.display = 'none'; applyHo(fig.getObject3D('mesh')); });
       anchor.appendChild(stage); scene.appendChild(anchor);
       if (preview) {
         scene.insertAdjacentHTML('beforeend', '<a-sky color="#cfd6dc"></a-sky><a-plane rotation="-90 0 0" width="6" height="6" color="#9a9384"></a-plane>' +
-          '<a-entity camera look-controls="enabled: false" position="0 0.75 1.55" rotation="-14 0 0"></a-entity>');
+          '<a-entity camera look-controls="enabled: false" fov="45" position="0 0.62 2.4" rotation="-6 0 0"></a-entity>');
         document.getElementById('hint').style.display = 'none';
         // ドラッグで回す
         let dragging = false, lastX = 0;
         addEventListener('pointerdown', e => { if (e.target.tagName === 'CANVAS') { dragging = true; lastX = e.clientX; } });
         addEventListener('pointerup', () => dragging = false);
-        addEventListener('pointermove', e => { if (!dragging) return; const s = stage.components['heian-stage']; s.holder.rotation.y += (e.clientX - lastX) * 0.01; lastX = e.clientX; });
+        addEventListener('pointermove', e => { if (!dragging) return; const d = (e.clientX - lastX) * 0.01; const s = stage.components['heian-stage']; s.holder.rotation.y += d; fig.object3D.rotation.y += d; lastX = e.clientX; });
       } else {
         scene.insertAdjacentHTML('beforeend', '<a-entity camera></a-entity>');
         anchor.addEventListener('markerFound', () => document.getElementById('hint').style.display = 'none');
@@ -94,7 +122,6 @@
 
     // 画面に出したマーカー（縦）：人物を画面に沿って立て、足元をマーカーの下の辺に置く
     // 机に置いたマーカー（横）：マーカーの上に立てる
-    let stand = true;
     function applyStand() {
       const st = document.getElementById('stage');
       st.setAttribute('rotation', stand ? '-90 0 0' : '0 0 0');
@@ -102,31 +129,38 @@
     }
 
     function render() {
-      const k = KINDS.find(x => x.id === current);
-      const stage = document.getElementById('stage').components['heian-stage'];
-      stage.show(k.make(), k.scale);
-      const key = current === 'sokutai' ? 'sokutai:' + currentRank : current;
-      document.getElementById('info').innerHTML = H.INFO[key] || `<b>${k.label}</b>`;
-      document.getElementById('ranks').style.display = current === 'sokutai' ? 'flex' : 'none';
-      const rb = document.getElementById('roofBtn'); if (rb) { rb.style.display = current === 'shinden' ? '' : 'none'; rb.classList.remove('on'); }
-      document.querySelectorAll('#kinds button').forEach(b => b.classList.toggle('on', b.dataset.id === current));
-      document.querySelectorAll('#ranks button').forEach(b => b.classList.toggle('on', b.dataset.id === currentRank));
+      const stage = document.getElementById('stage').components['heian-stage'], fig = document.getElementById('fig');
+      if (item.glb) {
+        stage.show(new THREE.Group(), 1);
+        if (currentGlb !== item.glb) { document.getElementById('loading').style.display = 'block'; fig.setAttribute('gltf-model', `models/${item.glb}`); currentGlb = item.glb; }
+        else applyHo(fig.getObject3D('mesh'));
+        fig.setAttribute('scale', `${FIG} ${FIG} ${FIG}`); fig.setAttribute('visible', true);
+      } else {
+        fig.setAttribute('visible', false);
+        const obj = item.make();
+        if (roofOff) { const y = obj.getObjectByName('yane'); if (y) y.visible = false; }
+        stage.show(obj, item.scale);
+      }
+      document.getElementById('info').innerHTML = H.INFO[item.id] || `<b>${item.label}</b>`;
+      drawButtons();
     }
 
-    // ボタン
-    const kinds = document.getElementById('kinds'), ranks = document.getElementById('ranks');
-    KINDS.forEach(k => { const b = document.createElement('button'); b.textContent = k.label; b.dataset.id = k.id; b.onclick = () => { current = k.id; render(); }; kinds.appendChild(b); });
-    Object.keys(H.PALETTE.hoRank).forEach(r => { const b = document.createElement('button'); b.textContent = r; b.dataset.id = r; b.onclick = () => { currentRank = r; render(); }; ranks.appendChild(b); });
-    const spin = document.createElement('button'); spin.textContent = '回す'; spin.onclick = () => { const s = document.getElementById('stage').components['heian-stage']; s.spin = !s.spin; spin.classList.toggle('on', s.spin); };
-    kinds.appendChild(spin);
-    // 寝殿造のときだけ：屋根を外して間取りを見る
-    const roofBtn = document.createElement('button'); roofBtn.textContent = '屋根を外す'; roofBtn.id = 'roofBtn';
-    roofBtn.onclick = () => { const s = document.getElementById('stage').components['heian-stage']; const y = s.holder.getObjectByName('yane'); if (y) { y.visible = !y.visible; roofBtn.classList.toggle('on', !y.visible); } };
-    kinds.appendChild(roofBtn);
-    if (!preview) {
-      const standBtn = document.createElement('button'); standBtn.textContent = '向き：画面のマーカー';
-      standBtn.onclick = () => { stand = !stand; applyStand(); standBtn.textContent = stand ? '向き：画面のマーカー' : '向き：机のマーカー'; };
-      kinds.appendChild(standBtn);
+    function drawButtons() {
+      const cats = document.getElementById('cats'), subs = document.getElementById('subs');
+      cats.innerHTML = ''; subs.innerHTML = '';
+      CATS.forEach(c => { const b = document.createElement('button'); b.textContent = c.label; b.classList.toggle('on', c === cat);
+        b.onclick = () => { cat = c; item = c.items[0]; render(); }; cats.appendChild(b); });
+      if (cat.items.length > 1) cat.items.forEach(it => { const b = document.createElement('button'); b.textContent = it.label; b.classList.toggle('on', it === item);
+        b.onclick = () => { item = it; render(); }; subs.appendChild(b); });
+      if (cat.id === 'shinden') { const b = document.createElement('button'); b.textContent = '屋根を外す'; b.classList.toggle('on', roofOff);
+        b.onclick = () => { roofOff = !roofOff; render(); }; subs.appendChild(b); }
+      const s = document.getElementById('stage').components['heian-stage'];
+      const spin = document.createElement('button'); spin.textContent = '回す'; spin.classList.toggle('on', s.spin);
+      spin.onclick = () => { s.spin = !s.spin; drawButtons(); }; cats.appendChild(spin);
+      if (!preview) {
+        const sb = document.createElement('button'); sb.textContent = stand ? '向き：画面のマーカー' : '向き：机のマーカー';
+        sb.onclick = () => { stand = !stand; applyStand(); drawButtons(); }; cats.appendChild(sb);
+      }
     }
     buildScene();
   </script>
