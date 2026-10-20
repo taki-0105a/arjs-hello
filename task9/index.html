@@ -4,6 +4,18 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
   <title>平安の装束AR（タスク9-1）</title>
+  <script>
+    // スマホでは背面カメラを希望する（ideal なので、無くても失敗しない）。AR.js より前に置く
+    (function () {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+      var orig = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+      var isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent || '');
+      navigator.mediaDevices.getUserMedia = function (c) {
+        if (c && typeof c.video === 'object') c = Object.assign({}, c, { video: isMobile ? { facingMode: { ideal: 'environment' } } : true });
+        return orig(c);
+      };
+    })();
+  </script>
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script>
     // 確認用の表示（?preview=1）では AR.js を読み込まない（読み込むと自動でカメラを使い始めるため）
@@ -28,7 +40,7 @@
 </head>
 <body>
   <div id="info"></div>
-  <div id="hint">「AR.js」マーカーにカメラを向けてください</div>
+  <div id="hint">「平」のマーカーにカメラを向けてください</div>
   <div id="bar">
     <div class="row" id="ranks"></div>
     <div class="row" id="kinds"></div>
@@ -57,7 +69,7 @@
         <a-entity light="type: ambient; intensity: 0.65"></a-entity>
         <a-entity light="type: directional; intensity: 0.9" position="1 3 2"></a-entity>`;
       const anchor = document.createElement(preview ? 'a-entity' : 'a-marker');
-      if (!preview) { anchor.setAttribute('type', 'pattern'); anchor.setAttribute('url', '../my-icon-marker.patt'); }
+      if (!preview) { anchor.setAttribute('type', 'pattern'); anchor.setAttribute('url', 'marker-heian.patt'); }
       const stage = document.createElement('a-entity'); stage.setAttribute('heian-stage', ''); stage.id = 'stage';
       anchor.appendChild(stage); scene.appendChild(anchor);
       if (preview) {
