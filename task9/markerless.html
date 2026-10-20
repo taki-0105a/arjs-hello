@@ -45,7 +45,7 @@
   <script>
     const H = window.HEIAN;
     const mv = document.getElementById('mv');
-    const MODELS = 'models/';
+    const MODELS = 'models/', MODEL_VER = '?v=2';   // 模型を差し替えたら番号を上げる（ブラウザの古い控えを使わせない）
     // AR で置いたときの大きさ（等身大の何分の一か）。置いたあと、つまんで変えられる
     const FIG = 0.28;
 
@@ -92,7 +92,7 @@
 
     async function render() {
       if (item.glb) {
-        const src = MODELS + item.glb;
+        const src = MODELS + item.glb + MODEL_VER;
         mv.setAttribute('scale', `${FIG} ${FIG} ${FIG}`);
         if (currentSrc !== src) { document.getElementById('loading').style.display = 'block'; mv.src = src; currentSrc = src; }
         else applyHo();

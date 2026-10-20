@@ -53,6 +53,7 @@
     const preview = params.has('preview');   // ?preview=1：カメラなしで中身を確かめる表示
     const H = window.HEIAN;
     const FIG = 0.7;                         // 人物の大きさ（マーカーの一辺を 1 とする）
+    const MODEL_VER = '?v=2';                // 模型を差し替えたら番号を上げる（ブラウザの古い控えを使わせない）
 
     // 分類と、その中の種類。glb は Blender で作った写実的な人物、make は heian.js で組み立てる模型
     const CATS = [
@@ -132,7 +133,7 @@
       const stage = document.getElementById('stage').components['heian-stage'], fig = document.getElementById('fig');
       if (item.glb) {
         stage.show(new THREE.Group(), 1);
-        if (currentGlb !== item.glb) { document.getElementById('loading').style.display = 'block'; fig.setAttribute('gltf-model', `models/${item.glb}`); currentGlb = item.glb; }
+        if (currentGlb !== item.glb) { document.getElementById('loading').style.display = 'block'; fig.setAttribute('gltf-model', `models/${item.glb}${MODEL_VER}`); currentGlb = item.glb; }
         else applyHo(fig.getObject3D('mesh'));
         fig.setAttribute('scale', `${FIG} ${FIG} ${FIG}`); fig.setAttribute('visible', true);
       } else {
