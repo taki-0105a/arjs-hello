@@ -191,7 +191,11 @@ AFRAME.registerComponent('heian-stage', {
     while (this.holder.children.length) this.holder.remove(this.holder.children[0]);
     obj.scale.setScalar(scale); this.holder.add(obj); this.holder.rotation.y = 0;
   },
-  tick: function (t, dt) { if (this.spin) this.holder.rotation.y += dt * 0.0006; }
+  tick: function (t, dt) {
+    if (!this.spin) return;
+    this.holder.rotation.y += dt * 0.0006;
+    const fig = this.el.querySelector('#fig'); if (fig) fig.object3D.rotation.y += dt * 0.0006;   // 写実的な人物（GLB）も回す
+  }
 });
 
 window.HEIAN = { PALETTE, INFO, sokutai, seatedLady, shinden };
