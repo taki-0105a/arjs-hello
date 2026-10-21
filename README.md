@@ -42,6 +42,23 @@ task9/marker-sokutai.png / .patt   束帯の影絵マーカー
 
 「問いに挑戦」を押すと、7つの問いに答えられます（位当て、どの時代の武士か×4、女房と女主人、僧の位）。答えたあとに模型で確かめ、本文に戻る問いが出ます。答えは xAPI の形の記録（statement）として、その端末のブラウザの中にだけ残ります。どこかに送ることはしません（LRS への送信は未実装）。
 
+## 人物の物差しの肖像画
+
+「人物の物差し」の人形の顔の札は、次の肖像画（Wikimedia Commons でパブリックドメインとされているもの）から顔のまわりを切り出したものです。想像図や「伝」の像は、本人の姿をそのまま写したものとは限りません。
+
+| 人物 | 原画 | Commons のファイル |
+|---|---|---|
+| 紫式部 | 後世の想像図（土佐光起、17世紀、石山寺蔵） | [Tosa_Mitsuoki_001.jpg](https://commons.wikimedia.org/wiki/File:Tosa_Mitsuoki_001.jpg) |
+| 清少納言 | 後世の想像図（土佐光起、17世紀頃） | [Sei_Shonagon2.jpg](https://commons.wikimedia.org/wiki/File:Sei_Shonagon2.jpg) |
+| 平清盛 | 『天子摂関御影』（南北朝時代、宮内庁三の丸尚蔵館蔵）より。没後の作 | [Taira_no_Kiyomori,TenshiSekkanMiei.jpg](https://commons.wikimedia.org/wiki/File:Taira_no_Kiyomori,TenshiSekkanMiei.jpg) |
+| 西行 | 鎌倉時代（14世紀）の作、MOA美術館蔵 | [PORTRAIT_OF_THE_PRIEST-POET_SAIGYO_-_Google_Art_Project.jpg](https://commons.wikimedia.org/wiki/File:PORTRAIT_OF_THE_PRIEST-POET_SAIGYO_-_Google_Art_Project.jpg) |
+| 源頼朝 | 伝源頼朝像（神護寺蔵）。足利直義の像とする説がある | [《伝源頼朝像》13世紀、鎌倉時代、神護寺、京都.jpg](https://commons.wikimedia.org/wiki/File:《伝源頼朝像》13世紀、鎌倉時代、神護寺、京都.jpg) |
+| 鴨長明 | 後世の想像図（菊池容斎『前賢故実』、19世紀） | [Kamo_no_Chomei.jpg](https://commons.wikimedia.org/wiki/File:Kamo_no_Chomei.jpg) |
+| 吉田兼好 | 後世の想像図（狩野探幽、17世紀） | [Kenko_by_Kano_Tanyu.jpg](https://commons.wikimedia.org/wiki/File:Kenko_by_Kano_Tanyu.jpg) |
+| 足利義満 | 鹿苑寺蔵の像（15世紀初め） | [Yoshimitsu_Ashikaga_cropped.jpg](https://commons.wikimedia.org/wiki/File:Yoshimitsu_Ashikaga_cropped.jpg) |
+| 織田信長 | 狩野宗秀筆（1583年、長興寺蔵） | [Odanobunaga.jpg](https://commons.wikimedia.org/wiki/File:Odanobunaga.jpg) |
+| 豊臣秀吉 | 狩野光信筆（1598年頃、高台寺蔵） | [Toyotomi_Hideyoshi_c1598_Kodai-ji_Temple.png](https://commons.wikimedia.org/wiki/File:Toyotomi_Hideyoshi_c1598_Kodai-ji_Temple.png) |
+
 ## ライセンス
 
 - コード：[MIT License](LICENSE)
