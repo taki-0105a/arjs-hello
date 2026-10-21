@@ -9,7 +9,7 @@
   <script>window.THREE = AFRAME.THREE;</script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/exporters/GLTFExporter.js"></script>
   <script src="heian.js"></script>
-  <script src="quiz.js"></script>
+  <script src="quiz.js?v=2"></script>
   <!-- 平面を見つけて置く：iPhone は AR クイックルック、Android は WebXR -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <style>
@@ -84,10 +84,12 @@
       return new Promise(res => new THREE.GLTFExporter().parse(root, buf => res(buf), { binary: true, onlyVisible: true }));
     }
     // 束帯の袍の色を、選んだ位の色に塗り替える
+    let hoOverride = null;
     function applyHo() {
-      if (!item.ho || !mv.model) return;
+      const ho = hoOverride || item.ho;
+      if (!ho || !mv.model) return;
       const m = mv.model.getMaterialByName('ho');
-      if (m) m.pbrMetallicRoughness.setBaseColorFactor(lin(item.ho));
+      if (m) m.pbrMetallicRoughness.setBaseColorFactor(lin(ho));
     }
     mv.addEventListener('load', () => { document.getElementById('loading').style.display = 'none'; applyHo(); });
 
@@ -125,7 +127,8 @@
 
     // 問いの部品（quiz.js）から模型を切り替えるための窓口
     window.HEIAN_UI = {
-      select(id) {
+      select(id, opts) {   // opts.ho：袍の色を一時的に差し替える（問いで答えの色を伏せるとき）
+        hoOverride = (opts && opts.ho) || null;
         for (const c of CATS) { const it = c.items.find(x => x.id === id); if (it) { cat = c; item = it; render(); return; } }
       },
       showUi(on) {   // 問いに答えている間は、答えが分かってしまう説明とボタンを隠す
