@@ -23,7 +23,7 @@
       document.write('<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"><\/script>');
   </script>
   <script src="heian.js"></script>
-  <script src="quiz.js"></script>
+  <script src="quiz.js?v=2"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
     #info { position: fixed; left: 8px; right: 8px; top: 8px; z-index: 999; background: rgba(20, 22, 28, 0.78); color: #fff;
@@ -76,9 +76,11 @@
     let cat = CATS[1], item = cat.items[0], roofOff = false, stand = true, currentGlb = null;
 
     // 束帯の袍の色を、選んだ位の色に塗り替える（glTF の色はリニアなので sRGB から直す）
+    let hoOverride = null;
     function applyHo(root) {
-      if (!item.ho || !root) return;
-      const c = new THREE.Color(item.ho).convertSRGBToLinear();
+      const ho = hoOverride || item.ho;
+      if (!ho || !root) return;
+      const c = new THREE.Color(ho).convertSRGBToLinear();
       root.traverse(o => { if (o.material && o.material.name === 'ho') o.material.color.copy(c); });
     }
 
@@ -167,7 +169,8 @@
 
     // 問いの部品（quiz.js）から模型を切り替えるための窓口
     window.HEIAN_UI = {
-      select(id) {
+      select(id, opts) {   // opts.ho：袍の色を一時的に差し替える（問いで答えの色を伏せるとき）
+        hoOverride = (opts && opts.ho) || null;
         for (const c of CATS) { const it = c.items.find(x => x.id === id); if (it) { cat = c; item = it; render(); return; } }
       },
       showUi(on) {   // 問いに答えている間は、答えが分かってしまう説明とボタンを隠す

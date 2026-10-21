@@ -7,7 +7,7 @@
     {
       id: 'kurai-yugiri', title: '位当て：夕霧の袍の色',
       ask: '『源氏物語』少女の巻。元服した夕霧は、四位ではなく六位とされ、本文には「浅葱にて殿上に帰りたまふ」とあります。夕霧が着ている袍の色は、どの位の色でしょう。',
-      before: null,
+      before: 'sokutai:四位以上（黒）', beforeOpts: { ho: '#c4c2bc' },   // 答えの色は伏せて、灰色の袍で出す
       choices: ['四位以上（黒）', '五位（緋）', '六位（浅葱）'], answer: 2,
       show: (i) => 'sokutai:' + ['四位以上（黒）', '五位（緋）', '六位（浅葱）'][i],   // 選んだ位の袍を出してから正解を示す
       after: 'sokutai:六位（浅葱）',
@@ -40,14 +40,16 @@
     },
     {
       id: 'nyobo-kouchiki', title: '仕える女房はどちらか', ask: '唐衣と裳を着けた女性と、小袿を着た女性。主人の前に仕える女房の正装は、どちらでしょう。',
-      before: null, choices: ['唐衣と裳を着けた女性', '小袿を着た女性'], answer: 0,
+      before: 'nyobo', compare: [['唐衣と裳の女性を見る', 'nyobo'], ['小袿の女性を見る', 'kouchiki']],
+      choices: ['唐衣と裳を着けた女性', '小袿を着た女性'], answer: 0,
       show: (i) => ['nyobo', 'kouchiki'][i], after: 'nyobo',
       why: '唐衣と裳を着けた「女房装束（唐衣裳）」が、女房が主人の前に出るときの正装です。小袿は、高い身分の女性の準正装で、唐衣と裳は着けません。',
       back: '本文に戻ろう：物語の中で、女房と女主人の身なりがどう書き分けられているか探してみよう。',
     },
     {
       id: 'sou-kosou', title: '位の高い僧はどちらか', ask: '首の後ろに三角の襟が立ち、錦の袈裟を掛けた僧と、墨染の衣の僧。位の高い僧はどちらでしょう。',
-      before: null, choices: ['三角の襟が立つ僧', '墨染の衣の僧'], answer: 0,
+      before: 'sou:kosou', compare: [['三角の襟の僧を見る', 'sou:kosou'], ['墨染の衣の僧を見る', 'sou:hoshi']],
+      choices: ['三角の襟が立つ僧', '墨染の衣の僧'], answer: 0,
       show: (i) => ['sou:kosou', 'sou:hoshi'][i], after: 'sou:kosou',
       why: '首の後ろに立つ三角の襟は「僧綱襟」で、位の高い僧の目印です。錦の七条袈裟は儀式の正装。墨染の衣に五条袈裟は、ふだんの僧の姿です。',
       back: '本文に戻ろう：『徒然草』の仁和寺の法師は、どちらの姿で思い浮かべるのがよいだろう。',
@@ -88,6 +90,7 @@
             box-shadow: 0 2px 12px rgba(0,0,0,0.3); font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
     #quiz h3 { margin: 0 0 6px; font-size: 15px; color: #8c2f39; }
     #quiz .choices { display: flex; flex-direction: column; gap: 6px; margin: 8px 0; }
+    #quiz .compare button.cmp { margin: 4px 6px 0 0; border: 1px dashed #8a7a5a; background: #f6f1e6; color: #2a2522; border-radius: 14px; padding: 6px 10px; font-size: 13px; font-family: inherit; }
     #quiz .choices button, #quiz .nav button { border: 1px solid #8a7a5a; background: #fff; color: #2a2522; border-radius: 10px;
             padding: 8px 10px; font-size: 14px; text-align: left; font-family: inherit; }
     #quiz .choices button.ok { background: #e3efe3; border-color: #3d7a46; }
@@ -104,18 +107,24 @@
 
   let order = [], pos = 0, score = 0;
   const ui = () => window.HEIAN_UI;
+  let last = null;
+  function sel(id, opts) { last = id; ui().select(id, opts); }   // 最後に出した模型を覚えておく
   function open() {
     order = QUESTIONS.map((q, i) => i); pos = 0; score = 0;
     // 武士の4問は順番をまぜる（最初の位当てと最後の2問は固定）
     const mid = order.slice(1, 5).sort(() => Math.random() - 0.5); order = [0, ...mid, 5, 6];
     btn.style.display = 'none'; box.style.display = 'block'; ui().showUi(false); ask();
   }
-  function close() { box.style.display = 'none'; btn.style.display = ''; ui().showUi(true); }
+  function close() { box.style.display = 'none'; btn.style.display = ''; ui().showUi(true); if (last) ui().select(last); }   // 伏せた色を元に戻す
   function ask() {
     const q = QUESTIONS[order[pos]];
-    if (q.before) ui().select(q.before);
-    box.innerHTML = `<h3>問い ${pos + 1} / ${order.length}　${q.title}</h3><div>${q.ask}</div><div class="choices"></div>
+    sel(q.before, q.beforeOpts);
+    box.innerHTML = `<h3>問い ${pos + 1} / ${order.length}　${q.title}</h3><div>${q.ask}</div><div class="compare"></div><div class="choices"></div>
                      <div class="nav"><button data-a="log">記録を見る</button><button data-a="end">やめる</button></div>`;
+    if (q.compare) {   // 答える前に、模型を切り替えて見比べる
+      const cp = box.querySelector('.compare'); cp.innerHTML = '<div style="margin-top:6px;color:#5a3d1e">見比べてから答えよう：</div>';
+      q.compare.forEach(([label, id]) => { const b = document.createElement('button'); b.textContent = label; b.className = 'cmp'; b.onclick = () => sel(id); cp.appendChild(b); });
+    }
     const ch = box.querySelector('.choices');
     q.choices.forEach((c, i) => { const b = document.createElement('button'); b.textContent = c; b.onclick = () => answer(q, i); ch.appendChild(b); });
     nav();
@@ -123,13 +132,15 @@
   function answer(q, i) {
     const ok = i === q.answer; if (ok) score++;
     record(q, i, ok);
-    if (q.show) ui().select(ok ? q.after : q.show(i));          // まず自分の選んだものを見せる（違っていれば、あとで正解を出せる）
+    if (q.show) sel(ok ? q.after : q.show(i));          // 位当てなどは、まず自分の選んだものを見せる（違っていれば「正解の模型を見る」で出せる）
+    else sel(q.before);                                    // 武士の問いは、答えたあとも同じ模型を（色も戻して）出しておく
+    box.querySelectorAll('.compare button').forEach(b => b.disabled = true);
     box.querySelectorAll('.choices button').forEach((b, k) => { b.disabled = true; if (k === q.answer) b.classList.add('ok'); else if (k === i) b.classList.add('ng'); });
     const fb = document.createElement('div'); fb.className = 'fb';
     fb.innerHTML = `<b>${ok ? 'そのとおり。' : 'ちがいます。正解は「' + q.choices[q.answer] + '」。'}</b>${q.why}<div class="back">${q.back}</div>`;
     box.querySelector('.choices').after(fb);
     const navEl = box.querySelector('.nav'); navEl.innerHTML = '';
-    if (!ok && q.show) { const s = document.createElement('button'); s.textContent = '正解の模型を見る'; s.onclick = () => ui().select(q.after); navEl.appendChild(s); }
+    if (!ok && q.show) { const s = document.createElement('button'); s.textContent = '正解の模型を見る'; s.onclick = () => sel(q.after); navEl.appendChild(s); }
     const n = document.createElement('button'); n.textContent = pos + 1 < order.length ? '次の問い' : '結果を見る';
     n.onclick = () => { pos++; pos < order.length ? ask() : finish(); }; navEl.appendChild(n);
     const lg = document.createElement('button'); lg.textContent = '記録を見る'; lg.onclick = showLog; navEl.appendChild(lg);
