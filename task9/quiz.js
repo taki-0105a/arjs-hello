@@ -56,6 +56,22 @@
     },
   ];
 
+  // 物差しの問い：模型を見て、その姿がよく見られた年に物差しのつまみを合わせる（lo〜hi に入れば正解）
+  const ERAS = [['平安', 1000, 1185, '#c9b8d8'], ['鎌倉', 1185, 1333, '#b9d3c4'], ['南北朝', 1336, 1392, '#e3cfa6'],
+                ['室町', 1392, 1467, '#a9c4dd'], ['戦国', 1467, 1573, '#e2b2a8'], ['安土桃山', 1573, 1600, '#e8d79a']];
+  const RULER = [
+    { id: 'nen-sohei', title: '物差し：僧兵', before: 'sou:sohei', at: 1100, lo: 1000, hi: 1200,
+      why: '僧兵が寺の力を背に強訴をくり返したのは、平安時代の後半（11〜12世紀）。『平家物語』にも山法師が出てきます。' },
+    { id: 'nen-ooyoroi', title: '物差し：大鎧', before: 'bushi:ooyoroi', at: 1185, lo: 1100, hi: 1350,
+      why: '大鎧は平安時代の後半から鎌倉時代の、馬上で弓を射る武士の鎧。源平の合戦（1180〜1185年）のころが代表です。' },
+    { id: 'nen-doumaru', title: '物差し：胴丸', before: 'bushi:doumaru', at: 1400, lo: 1330, hi: 1550,
+      why: '胴丸は、南北朝から室町時代に、徒歩で戦う武士から武将まで広く使われました。' },
+    { id: 'nen-ashigaru', title: '物差し：足軽', before: 'bushi:ashigaru', at: 1500, lo: 1460, hi: 1600,
+      why: '足軽が大きな働きをするようになったのは、応仁の乱（1467年〜）のころから戦国時代にかけてです。' },
+    { id: 'nen-tousei', title: '物差し：当世具足', before: 'bushi:tousei', at: 1575, lo: 1530, hi: 1600,
+      why: '当世具足は、鉄砲が広まった戦国時代の後半から江戸時代の初めの鎧です。' },
+  ];
+
   // ---- 学習の記録（xAPI の形） ----
   const KEY = 'koten-ar-xapi';
   function load() { try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch (e) { return []; } }
@@ -67,14 +83,14 @@
       return id;
     } catch (e) { return 'learner-anon'; }
   }
-  function record(q, choice, success) {
+  function record(q, choice, success, response) {
     const list = load();
     list.push({
       actor: { objectType: 'Agent', account: { homePage: location.origin, name: learner() } },
       verb: { id: 'http://adlnet.gov/expapi/verbs/answered', display: { ja: '答えた' } },
       object: { objectType: 'Activity', id: location.origin + location.pathname + '#q-' + q.id,
-                definition: { name: { ja: q.title }, type: 'http://adlnet.gov/expapi/activities/cmi.interaction', interactionType: 'choice' } },
-      result: { response: q.choices[choice], success: success },
+                definition: { name: { ja: q.title }, type: 'http://adlnet.gov/expapi/activities/cmi.interaction', interactionType: q.at ? 'numeric' : 'choice' } },
+      result: { response: response !== undefined ? String(response) : q.choices[choice], success: success },
       timestamp: new Date().toISOString(),
     });
     save(list);
@@ -98,6 +114,15 @@
     #quiz .fb { margin-top: 6px; padding: 8px 10px; border-radius: 8px; background: #f0ebe0; }
     #quiz .back { margin-top: 6px; color: #5a3d1e; font-weight: bold; }
     #quiz .nav { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; margin-top: 8px; }
+    #quiz .ruler { position: relative; margin: 10px 4px 2px; }
+    #quiz .bands { display: flex; height: 22px; border-radius: 4px; overflow: hidden; font-size: 10px; }
+    #quiz .bands div { display: flex; align-items: center; justify-content: center; color: #3a332b; white-space: nowrap; overflow: hidden; }
+    #quiz .ruler input { width: 100%; margin: 6px 0 0; }
+    #quiz .ticks { display: flex; justify-content: space-between; font-size: 11px; color: #5a5048; }
+    #quiz .mark { position: absolute; top: -4px; height: 30px; border-left: 3px solid #3d7a46; }
+    #quiz .range { position: absolute; top: 0; height: 22px; background: rgba(61,122,70,0.25); border: 2px solid #3d7a46; border-radius: 4px; box-sizing: border-box; }
+    #quiz .year { text-align: center; font-weight: bold; font-size: 16px; margin-top: 4px; }
+    #quiz .menu button { display: block; width: 100%; margin: 6px 0; border: 1px solid #8a7a5a; background: #fff; border-radius: 10px; padding: 10px; font-size: 15px; font-family: inherit; text-align: left; }
     #quiz pre { white-space: pre-wrap; font-size: 11px; background: #fff; padding: 6px; border-radius: 6px; max-height: 30vh; overflow: auto; }`;
   document.head.appendChild(css);
   const btn = document.createElement('button'); btn.id = 'quizBtn'; btn.textContent = '問いに挑戦';
@@ -105,19 +130,32 @@
   document.addEventListener('DOMContentLoaded', () => { document.body.appendChild(btn); document.body.appendChild(box); });
   if (document.readyState !== 'loading') { document.body.appendChild(btn); document.body.appendChild(box); }
 
-  let order = [], pos = 0, score = 0;
+  let order = [], pos = 0, score = 0, set = QUESTIONS;
   const ui = () => window.HEIAN_UI;
   let last = null;
   function sel(id, opts) { last = id; ui().select(id, opts); }   // 最後に出した模型を覚えておく
   function open() {
-    order = QUESTIONS.map((q, i) => i); pos = 0; score = 0;
-    // 武士の4問は順番をまぜる（最初の位当てと最後の2問は固定）
-    const mid = order.slice(1, 5).sort(() => Math.random() - 0.5); order = [0, ...mid, 5, 6];
-    btn.style.display = 'none'; box.style.display = 'block'; ui().showUi(false); ask();
+    btn.style.display = 'none'; box.style.display = 'block'; ui().showUi(false);
+    box.innerHTML = `<h3>問いに挑戦</h3><div class="menu">
+        <button data-m="mi">身なりの問い（7問）<br><small>位当て、どの時代の武士か、女房と女主人、僧の位</small></button>
+        <button data-m="nen">物差しの問い（5問）<br><small>模型を見て、その姿がよく見られた年に物差しを合わせる</small></button></div>
+      <div class="nav"><button data-a="log">記録を見る</button><button data-a="end">やめる</button></div>`;
+    box.querySelectorAll('.menu button').forEach(b => b.onclick = () => start(b.dataset.m));
+    nav();
+  }
+  function start(kind) {
+    pos = 0; score = 0;
+    if (kind === 'nen') { set = RULER; order = RULER.map((q, i) => i).sort(() => Math.random() - 0.5); }
+    else {
+      set = QUESTIONS; order = QUESTIONS.map((q, i) => i);
+      const mid = order.slice(1, 5).sort(() => Math.random() - 0.5); order = [0, ...mid, 5, 6];   // 武士の4問だけ順番をまぜる
+    }
+    ask();
   }
   function close() { box.style.display = 'none'; btn.style.display = ''; ui().showUi(true); if (last) ui().select(last); }   // 伏せた色を元に戻す
   function ask() {
-    const q = QUESTIONS[order[pos]];
+    const q = set[order[pos]];
+    if (q.at) return askRuler(q);
     sel(q.before, q.beforeOpts);
     box.innerHTML = `<h3>問い ${pos + 1} / ${order.length}　${q.title}</h3><div>${q.ask}</div><div class="compare"></div><div class="choices"></div>
                      <div class="nav"><button data-a="log">記録を見る</button><button data-a="end">やめる</button></div>`;
@@ -145,6 +183,41 @@
     n.onclick = () => { pos++; pos < order.length ? ask() : finish(); }; navEl.appendChild(n);
     const lg = document.createElement('button'); lg.textContent = '記録を見る'; lg.onclick = showLog; navEl.appendChild(lg);
   }
+  // ---- 物差しの問い ----
+  const pct = (y) => (y - 1000) / 600 * 100;
+  function rulerHtml() {
+    const bands = ERAS.map(([n, a, b, c]) => `<div style="width:${(Math.min(b, 1600) - a) / 6}%;background:${c}">${b - a > 60 ? n : ''}</div>`).join('');
+    return `<div class="ruler"><div class="bands">${bands}</div><input type="range" min="1000" max="1600" step="10" value="1300">
+      <div class="ticks"><span>1000</span><span>1200</span><span>1400</span><span>1600</span></div></div>
+      <div class="year">1300 年ごろ</div>`;
+  }
+  function askRuler(q) {
+    sel(q.before);
+    box.innerHTML = `<h3>問い ${pos + 1} / ${order.length}　${q.title}</h3>
+      <div>この姿がよく見られたのは、何年ごろでしょう。模型を回して手がかりを探し、物差しのつまみを動かして答えよう。</div>
+      ${rulerHtml()}<div class="nav"><button data-x="ans">この年に立たせる</button><button data-a="log">記録を見る</button><button data-a="end">やめる</button></div>`;
+    const inp = box.querySelector('.ruler input'), yr = box.querySelector('.year');
+    inp.oninput = () => yr.textContent = inp.value + ' 年ごろ';
+    box.querySelector('[data-x="ans"]').onclick = () => answerRuler(q, +inp.value);
+    nav();
+  }
+  function answerRuler(q, y) {
+    const ok = y >= q.lo && y <= q.hi; if (ok) score++;
+    record(q, null, ok, y);
+    const inp = box.querySelector('.ruler input'); inp.disabled = true;
+    const r = box.querySelector('.ruler');
+    r.insertAdjacentHTML('beforeend', `<div class="range" style="left:${pct(q.lo)}%;width:${pct(q.hi) - pct(q.lo)}%"></div><div class="mark" style="left:${pct(q.at)}%"></div>`);
+    const fb = document.createElement('div'); fb.className = 'fb';
+    fb.innerHTML = `<b>${ok ? 'そのとおり。' : 'ちがいます。'}</b>あなたの答え：${y} 年ごろ。目安は ${q.lo}〜${q.hi} 年（緑の枠）、物差しの模型では ${q.at} 年の位置に立っています。${q.why}
+      <div class="back">年代の物差しの模型に切り替えました。ほかの姿と並べて、何が変わっていったかを確かめよう。</div>`;
+    box.querySelector('.year').after(fb);
+    sel('nenpyo');
+    const navEl = box.querySelector('.nav'); navEl.innerHTML = '';
+    const back = document.createElement('button'); back.textContent = 'もう一度この姿を見る'; back.onclick = () => sel(q.before); navEl.appendChild(back);
+    const n = document.createElement('button'); n.textContent = pos + 1 < order.length ? '次の問い' : '結果を見る';
+    n.onclick = () => { pos++; pos < order.length ? ask() : finish(); }; navEl.appendChild(n);
+  }
+
   function finish() {
     box.innerHTML = `<h3>結果</h3><div>${order.length} 問中 ${score} 問 正解。</div>
       <div class="back">模型を自由に回して、答えの手がかりになったところをもう一度確かめよう。</div>
@@ -165,7 +238,7 @@
       const a = b.dataset.a;
       if (a === 'end') close();
       else if (a === 'log') showLog();
-      else if (a === 'again') open();
+      else if (a === 'again') open();   // 問いの種類を選び直す
       else if (a === 'clear') { save([]); showLog(); }
       else if (a === 'dl') {
         const url = URL.createObjectURL(new Blob([JSON.stringify(load(), null, 2)], { type: 'application/json' }));
