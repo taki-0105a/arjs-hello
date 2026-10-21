@@ -66,6 +66,7 @@
           { id: 'bushi:doumaru', label: '胴丸（南北朝〜室町）', glb: 'bushi_doumaru.glb' },
           { id: 'bushi:tousei', label: '当世具足（戦国）', glb: 'bushi_tousei.glb' },
           { id: 'bushi:ashigaru', label: '足軽（室町後期〜戦国）', glb: 'bushi_ashigaru.glb' } ] },
+      { id: 'nenpyo', label: '年代の物差し', items: [{ id: 'nenpyo', label: '年代の物差し（1000〜1600年）', glb: 'nenpyo.glb', figScale: 0.09 }] },
     ];
     let cat = CATS[1], item = cat.items[0], lastUrl = null, roofOff = false, currentSrc = null;
 
@@ -96,7 +97,7 @@
     async function render() {
       if (item.glb) {
         const src = MODELS + item.glb + MODEL_VER;
-        mv.setAttribute('scale', `${FIG} ${FIG} ${FIG}`);
+        const sc = item.figScale || FIG; mv.setAttribute('scale', `${sc} ${sc} ${sc}`);
         if (currentSrc !== src) { document.getElementById('loading').style.display = 'block'; mv.src = src; currentSrc = src; }
         else applyHo();
       } else {
