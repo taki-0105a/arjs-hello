@@ -3,12 +3,13 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>平安の装束AR（マーカーなし）</title>
+  <title>古典の身なりAR（マーカーなし）</title>
   <!-- 寝殿造の模型は heian.js で組み立てる（A-Frame は three.js を使うためだけに読み込む。シーンは作らない） -->
   <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
   <script>window.THREE = AFRAME.THREE;</script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/exporters/GLTFExporter.js"></script>
   <script src="heian.js"></script>
+  <script src="quiz.js"></script>
   <!-- 平面を見つけて置く：iPhone は AR クイックルック、Android は WebXR -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <style>
@@ -121,6 +122,17 @@
       spin.onclick = () => { mv.hasAttribute('auto-rotate') ? mv.removeAttribute('auto-rotate') : mv.setAttribute('auto-rotate', ''); drawButtons(); };
       cats.appendChild(spin);
     }
+
+    // 問いの部品（quiz.js）から模型を切り替えるための窓口
+    window.HEIAN_UI = {
+      select(id) {
+        for (const c of CATS) { const it = c.items.find(x => x.id === id); if (it) { cat = c; item = it; render(); return; } }
+      },
+      showUi(on) {   // 問いに答えている間は、答えが分かってしまう説明とボタンを隠す
+        document.getElementById('info').style.display = on ? '' : 'none';
+        document.getElementById('bar').style.display = on ? '' : 'none';
+      },
+    };
     render();
   </script>
 </body>
