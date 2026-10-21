@@ -72,6 +72,7 @@
           { id: 'bushi:doumaru', label: '胴丸（南北朝〜室町）', glb: 'bushi_doumaru.glb' },
           { id: 'bushi:tousei', label: '当世具足（戦国）', glb: 'bushi_tousei.glb' },
           { id: 'bushi:ashigaru', label: '足軽（室町後期〜戦国）', glb: 'bushi_ashigaru.glb' } ] },
+      { id: 'nenpyo', label: '年代の物差し', items: [{ id: 'nenpyo', label: '年代の物差し（1000〜1600年）', glb: 'nenpyo.glb', figScale: 0.25 }] },
     ];
     let cat = CATS[1], item = cat.items[0], roofOff = false, stand = true, currentGlb = null;
 
@@ -138,7 +139,7 @@
         stage.show(new THREE.Group(), 1);
         if (currentGlb !== item.glb) { document.getElementById('loading').style.display = 'block'; fig.setAttribute('gltf-model', `models/${item.glb}${MODEL_VER}`); currentGlb = item.glb; }
         else applyHo(fig.getObject3D('mesh'));
-        fig.setAttribute('scale', `${FIG} ${FIG} ${FIG}`); fig.setAttribute('visible', true);
+        const sc = item.figScale || FIG; fig.setAttribute('scale', `${sc} ${sc} ${sc}`); fig.setAttribute('visible', true);
       } else {
         fig.setAttribute('visible', false);
         const obj = item.make();
