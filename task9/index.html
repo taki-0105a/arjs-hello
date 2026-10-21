@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-  <title>平安の装束AR（タスク9-1）</title>
+  <title>古典の身なりAR（タスク9-1）</title>
   <script>
     // スマホでは背面カメラを希望する（ideal なので、無くても失敗しない）。AR.js より前に置く
     (function () {
@@ -23,6 +23,7 @@
       document.write('<script src="https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js"><\/script>');
   </script>
   <script src="heian.js"></script>
+  <script src="quiz.js"></script>
   <style>
     body { margin: 0; overflow: hidden; font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; }
     #info { position: fixed; left: 8px; right: 8px; top: 8px; z-index: 999; background: rgba(20, 22, 28, 0.78); color: #fff;
@@ -163,6 +164,17 @@
         sb.onclick = () => { stand = !stand; applyStand(); drawButtons(); }; cats.appendChild(sb);
       }
     }
+
+    // 問いの部品（quiz.js）から模型を切り替えるための窓口
+    window.HEIAN_UI = {
+      select(id) {
+        for (const c of CATS) { const it = c.items.find(x => x.id === id); if (it) { cat = c; item = it; render(); return; } }
+      },
+      showUi(on) {   // 問いに答えている間は、答えが分かってしまう説明とボタンを隠す
+        document.getElementById('info').style.display = on ? '' : 'none';
+        document.getElementById('bar').style.display = on ? '' : 'none';
+      },
+    };
     buildScene();
   </script>
 </body>
