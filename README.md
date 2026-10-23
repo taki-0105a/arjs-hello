@@ -5,8 +5,10 @@ AR.js（A-Frame 版）で作った、ブラウザだけで動く WebAR です。
 | | ページ | 内容 |
 |---|---|---|
 | 1 | [Hello World](https://taki-0105a.github.io/arjs-hello/) | 「AR.js」マーカーを写すと、マーカーの上に「Hello World」が出る |
-| 2 | [古典の身なり AR](https://taki-0105a.github.io/arjs-hello/task9/) | 束帯の影絵マーカーを写すと、寝殿造や、束帯・女房装束・僧侶・武士の人物が立体で出る。「問いに挑戦」で、位当てや「どの時代の武士か」に答えて模型で確かめられる |
-| 2' | [古典の身なり AR（マーカーなし）](https://taki-0105a.github.io/arjs-hello/task9/markerless.html) | 机や床の平面を写して置く。二本指で回し、つまんで大きさを変えられる |
+| 2 | [古典の身なり AR](https://taki-0105a.github.io/arjs-hello/task9/) | 束帯の影絵マーカーを写すと、寝殿造や、束帯・女房装束・僧侶・武士の人物、年代の物差し、人物の物差しが立体で出る |
+| 2' | [古典の身なり AR（マーカーなし）](https://taki-0105a.github.io/arjs-hello/task9/markerless.html) | 机や床の平面を写して置く。二本指で回し、つまんで大きさを変えられる。`?id=bushi:ooyoroi` のように付けると、その資料だけが開く |
+| 3 | [国語便覧に AR の入口を（見本）](https://taki-0105a.github.io/arjs-hello/task9/binran.html) | 便覧の図版の横に QR を載せ、読み取るとその資料だけが立体で開く、という運用の見本。ねらいと、まだ分からないこと（教育的な効果）も書いた |
+| 4 | [問いに挑戦](https://taki-0105a.github.io/arjs-hello/task9/quiz.html) | AR とは切り離した、ふり返り用の問い。画面の模型を回しながら答える |
 
 どのページも、URL の末尾に `?preview=1` を付けると、カメラを使わずに中身だけを確かめられます（マーカーなし版は、そのままパソコンで回して見られます）。
 
@@ -34,13 +36,15 @@ task9/index.html      平安の装束 AR（マーカー型）
 task9/markerless.html 平安の装束 AR（マーカーなし）
 task9/heian.js        寝殿造の模型の組み立て、色と説明文
 task9/quiz.js         問い（位当て・どの時代の武士か など）と、答えの記録（xAPI の形、端末の中だけ）
+task9/quiz.html       問いのページ（AR なし）
+task9/binran.html     国語便覧に AR の入口を（QR の見本とねらい）
 task9/models/*.glb    人物の模型（10 体）
 task9/marker-sokutai.png / .patt   束帯の影絵マーカー
 ```
 
 ## 問いと学習の記録
 
-「問いに挑戦」を押すと、7つの問いに答えられます（位当て、どの時代の武士か×4、女房と女主人、僧の位）。答えたあとに模型で確かめ、本文に戻る問いが出ます。答えは xAPI の形の記録（statement）として、その端末のブラウザの中にだけ残ります。どこかに送ることはしません（LRS への送信は未実装）。
+問いは AR のページとは切り離し、[問いのページ](https://taki-0105a.github.io/arjs-hello/task9/quiz.html) にまとめました。身なりの問い（7問：位当て、どの時代の武士か×4、女房と女主人、僧の位）と、物差しの問い（5問）があります。答えたあとに模型で確かめ、本文に戻る問いが出ます。答えは xAPI の形の記録（statement）として、その端末のブラウザの中にだけ残ります。どこかに送ることはしません（LRS への送信は未実装）。
 
 ## 人物の物差しの肖像画
 

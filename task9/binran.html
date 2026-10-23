@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>国語便覧に AR の入口を（見本）</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    :root { --ink: #2a2420; --sub: #6a5f55; --line: #d8cfc0; --paper: #fbf8f1; --accent: #8c2f39; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #e9e4d8; color: var(--ink); font-family: "Hiragino Mincho ProN", "Yu Mincho", serif; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
+    .intent { background: #fff; border-radius: 10px; padding: 16px 18px; margin-bottom: 16px; font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", sans-serif; font-size: 14px; line-height: 1.8; }
+    .intent h1 { font-size: 18px; margin: 0 0 8px; }
+    .intent h2 { font-size: 15px; margin: 14px 0 4px; color: var(--accent); }
+    .intent ul { margin: 4px 0; padding-left: 1.3em; }
+    .intent .note { color: var(--sub); font-size: 13px; }
+    .page { background: var(--paper); border: 1px solid var(--line); border-radius: 4px; padding: 22px 22px 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }
+    .page h2 { margin: 0 0 2px; font-size: 22px; letter-spacing: 0.1em; border-bottom: 2px solid var(--ink); padding-bottom: 4px; }
+    .page .lead { font-size: 13px; color: var(--sub); margin: 6px 0 14px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+    .item { border: 1px solid var(--line); background: #fff; padding: 10px; display: flex; flex-direction: column; }
+    .item h3 { margin: 0 0 6px; font-size: 16px; }
+    .item .fig { display: flex; gap: 8px; align-items: flex-end; }
+    .item .fig img { flex: 1; min-width: 0; max-height: 210px; object-fit: contain; background: #f2efe8; }
+    .qrbox { width: 92px; text-align: center; font-size: 10px; color: var(--sub); font-family: "Hiragino Kaku Gothic ProN", sans-serif; }
+    .qrbox a { color: inherit; text-decoration: none; }
+    .qr { width: 88px; height: 88px; margin: 0 auto 2px; }
+    .qr img, .qr canvas { width: 88px !important; height: 88px !important; }
+    .item p { font-size: 12.5px; line-height: 1.7; margin: 8px 0 0; }
+    .item.wide { grid-column: 1 / -1; }
+    .foot { font-size: 11px; color: var(--sub); margin-top: 12px; font-family: "Hiragino Kaku Gothic ProN", sans-serif; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <section class="intent">
+    <h1>国語便覧に AR の入口を ― この見本のねらい</h1>
+    <p>資料集や国語便覧の図版の横に QR コードを一つ載せ、「立体で見たいときだけ」端末で読み取ると、その図版の装束や建物が机の上に立体で現れる、という運用を想定した見本です。ふだんは紙の図版で足り、写真や絵巻の図版はそのまま使います。AR は、紙では伝わりにくい「後ろ姿」「大きさ」「重なり」を補う道具として使います。</p>
+    <h2>なぜ便覧に載せるのか</h2>
+    <ul>
+      <li><b>図版と立体を一対一で結べる</b>：QR が「どれを出すか」を決めるので、マーカーを別に配る必要がありません。置く場所は机の平面を読み取って決めます（マーカーレス型）。</li>
+      <li><b>紙の図版の弱いところを補える</b>：図版は一方向から見た平面の絵です。束帯の後ろに引く裾、大鎧の腰の箙、女房装束の裳の広がりなどは、回り込んで見ると分かります。</li>
+      <li><b>導入の手間が小さい</b>：アプリは要らず、ブラウザで開くだけです。教材の側は、既存の図版に QR を足すだけで済みます。</li>
+      <li><b>本文に戻る</b>：使うのは場面を確かめたいときの数分にとどめ、確かめたら本文に戻って、身なりや位置がどう書かれているかを読みます。</li>
+    </ul>
+    <h2>まだ分からないこと</h2>
+    <p class="note">教育的な効果がどのくらいあるかは、まだ確かめていません。立体で見たことが本文の読みに結びつくのか、見るだけで終わってしまわないか、端末を出す手間に見合うのかは、授業で試し、生徒の記述などで確かめる必要があります。模型は辞典や博物館の資料をもとにした目安で、時代や資料による違いがあります。</p>
+    <p class="note">問いに答える機能は、AR とは切り離して <a href="quiz.html">問いのページ</a> にまとめました（授業のふり返り用）。</p>
+  </section>
+
+  <section class="page">
+    <h2>古典の身なり</h2>
+    <div class="lead">国語便覧のページの見本。図版は模型を描き出したもので、実際の便覧では写真や絵巻の図版が入るところです。右の QR を読み取ると、その資料が立体で開きます。</div>
+    <div class="grid" id="grid"></div>
+    <div class="foot">QR の行き先：https://taki-0105a.github.io/arjs-hello/task9/markerless.html?id=…　／　人体：MakeHuman（CC0）　／　模型の色や形は目安です。</div>
+  </section>
+</div>
+
+<script>
+  const BASE = 'https://taki-0105a.github.io/arjs-hello/task9/markerless.html?id=';
+  const ITEMS = [
+    { id: 'sokutai:四位以上（黒）', img: 'sokutai', name: '束帯（男性貴族の正装）',
+      text: '冠・袍・石帯・笏。袍の色は位を表し、平安中期には四位以上が黒、五位が緋、六位が浅葱。後ろには下襲の裾を長く引く。『源氏物語』少女の巻の夕霧は六位の浅葱。' },
+    { id: 'nyobo', img: 'nyobo', name: '女房装束（唐衣裳）',
+      text: 'いちばん外の短い唐衣、表着、重ねた袿、単、紅の長袴。腰から後ろに白い裳を引く。いわゆる「十二単」は俗称。' },
+    { id: 'sou:kosou', img: 'kosou', name: '僧の正装',
+      text: '白い鈍色に、首の後ろに立つ僧綱襟、錦の七条袈裟。僧綱襟は位の高い僧の目印。ふだんの僧は墨染の衣に五条袈裟。' },
+    { id: 'bushi:ooyoroi', img: 'ooyoroi', name: '大鎧（平安末〜鎌倉）',
+      text: '星兜に鍬形、左右の大袖、4間の草摺。馬上で弓を射る上級の武士の鎧。『平家物語』の敦盛や那須与一の時代。' },
+    { id: 'bushi:tousei', img: 'tousei', name: '当世具足（戦国）',
+      text: '鉄の板を矧いだ胴に、籠手・佩楯・臑当で手足まで覆う。筋兜に三日月の前立、背に旗指物。' },
+    { id: 'nenpyo', img: 'nenpyo', name: '年代の物差し（1000〜1600年）', wide: true,
+      text: '物差しの上に、束帯・僧兵・大鎧・胴丸・足軽・当世具足を、その姿がよく見られた年の位置に立たせた。並べて見ると、何が変わっていったかが分かる。' },
+  ];
+  const grid = document.getElementById('grid');
+  ITEMS.forEach(it => {
+    const url = BASE + encodeURIComponent(it.id);
+    const el = document.createElement('div'); el.className = 'item' + (it.wide ? ' wide' : '');
+    el.innerHTML = `<h3>${it.name}</h3>
+      <div class="fig"><img src="binran/${it.img}.jpg" alt="${it.name}の図版（模型の描き出し）">
+        <div class="qrbox"><a href="${url}" target="_blank"><div class="qr"></div>立体で見る<br>（AR）</a></div></div>
+      <p>${it.text}</p>`;
+    grid.appendChild(el);
+    new QRCode(el.querySelector('.qr'), { text: url, width: 176, height: 176, correctLevel: QRCode.CorrectLevel.M });
+  });
+</script>
+</body>
+</html>
