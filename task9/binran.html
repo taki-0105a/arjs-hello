@@ -88,7 +88,7 @@
     const url = BASE + encodeURIComponent(it.id);
     const el = document.createElement('div'); el.className = 'item' + (it.wide ? ' wide' : '');
     el.innerHTML = `<h3>${it.name}</h3>
-      <div class="fig"><img src="binran/${it.img}.jpg" alt="${it.name}の図版（模型の描き出し）">
+      <div class="fig"><img src="binran/${it.img}.jpg?v=2" alt="${it.name}の図版（模型の描き出し）" onerror="if(!this.dataset.retry){this.dataset.retry=1;this.src=this.src+'&r='+Date.now();}">
         <div class="qrbox"><a href="${url}" target="_blank"><div class="qr"></div>立体で見る<br>（AR）</a></div></div>
       <p>${it.text}</p>`;
     grid.appendChild(el);
