@@ -247,4 +247,5 @@
     });
   }
   btn.onclick = open;
+  window.HEIAN_QUIZ = { open };
 })();

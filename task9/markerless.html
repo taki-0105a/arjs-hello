@@ -9,7 +9,6 @@
   <script>window.THREE = AFRAME.THREE;</script>
   <script src="https://cdn.jsdelivr.net/npm/three@0.137.0/examples/js/exporters/GLTFExporter.js"></script>
   <script src="heian.js"></script>
-  <script src="quiz.js?v=3"></script>
   <!-- 平面を見つけて置く：iPhone は AR クイックルック、Android は WebXR -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
   <style>
@@ -27,6 +26,8 @@
     #arBtn { position: absolute; left: 50%; transform: translateX(-50%); bottom: 130px; background: #c9a96a; color: #1d1a14;
              border: none; font-weight: bold; font-size: 16px; padding: 12px 20px; border-radius: 24px; }
     #credit { position: fixed; right: 8px; bottom: 112px; z-index: 9; font-size: 10px; color: #6a6252; }
+    #more { position: fixed; left: 0; right: 0; bottom: 14px; z-index: 10; text-align: center; display: none; }
+    #more a { background: rgba(20,22,28,0.78); color: #f1ead8; padding: 8px 14px; border-radius: 16px; font-size: 13px; text-decoration: none; }
     #loading { position: fixed; left: 0; right: 0; top: 45%; text-align: center; z-index: 9; color: #5a5242; font-size: 14px; display: none; }
   </style>
 </head>
@@ -38,6 +39,7 @@
   </model-viewer>
   <div id="info"></div>
   <div id="loading">読み込み中…</div>
+  <div id="more"><a href="markerless.html">ほかの資料も見る</a></div>
   <div id="credit">人体：MakeHuman（CC0）</div>
   <div id="bar">
     <div class="row" id="subs"></div>
@@ -138,6 +140,24 @@
         document.getElementById('bar').style.display = on ? '' : 'none';
       },
     };
+    // ---- 開き方 ----
+    // ?id=bushi:ooyoroi … 資料集の QR から開いたとき：その一つだけを見せる（分類のボタンは隠す）
+    // ?quiz=1           … 問いのページ（quiz.html から）：AR は使わず、模型を見ながら問いに答える
+    const Q = new URLSearchParams(location.search);
+    const one = Q.get('id');
+    if (one) {
+      for (const c of CATS) { const it = c.items.find(x => x.id === one); if (it) { cat = c; item = it; } }
+      document.getElementById('bar').style.display = 'none';
+      document.getElementById('more').style.display = 'block';
+      document.getElementById('credit').style.bottom = '56px';
+      document.getElementById('arBtn').style.bottom = '64px';
+    }
+    if (Q.has('quiz')) {
+      mv.removeAttribute('ar'); document.getElementById('arBtn').style.display = 'none';
+      document.title = '古典の身なり：問いに挑戦';
+      const s = document.createElement('script'); s.src = 'quiz.js?v=4';
+      s.onload = () => window.HEIAN_QUIZ && window.HEIAN_QUIZ.open(); document.head.appendChild(s);
+    }
     render();
   </script>
 </body>
